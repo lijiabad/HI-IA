@@ -6,7 +6,6 @@ import torch
 import pandas as pd
 from numpy import inf
 from tqdm import tqdm
-import time
 
 class BaseTrainer(object):
     def __init__(self, model, criterion, metric_ftns, optimizer, args):
@@ -50,6 +49,8 @@ class BaseTrainer(object):
         raise NotImplementedError
 
     def train(self):
+        start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        
         not_improved_count = 0
         for epoch in range(self.start_epoch, self.epochs + 1):
             result = self._train_epoch(epoch)
@@ -91,9 +92,9 @@ class BaseTrainer(object):
             if epoch % self.save_period == 0:
                 self._save_checkpoint(epoch, save_best=best)
         self._print_best()
-        self._print_best_to_file()
+        self._print_best_to_file(start_time)
 
-    def _print_best_to_file(self):
+    def _print_best_to_file(self, start_time):
         crt_time = time.asctime(time.localtime(time.time()))
         self.best_recorder['val']['time'] = crt_time
         self.best_recorder['test']['time'] = crt_time
@@ -109,14 +110,35 @@ class BaseTrainer(object):
             record_table = pd.DataFrame()
         else:
             record_table = pd.read_csv(record_path)
-        # record_table = record_table.append(self.best_recorder['val'], ignore_index=True)
-        # record_table = record_table.append(self.best_recorder['test'], ignore_index=True)
-        # record_table.to_csv(record_path, index=False)
+       
         val_df = pd.DataFrame([self.best_recorder['val']])  
         test_df = pd.DataFrame([self.best_recorder['test']])
         record_table = pd.concat([record_table, val_df], ignore_index=True)
         record_table = pd.concat([record_table, test_df], ignore_index=True)
+        
+        #record and write time
+        end_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        total_seconds = time.mktime(time.strptime(end_time, "%Y-%m-%d %H:%M:%S")) - time.mktime(
+            time.strptime(start_time, "%Y-%m-%d %H:%M:%S")
+        )
+        hours = int(total_seconds // 3600)
+        minutes = int((total_seconds % 3600) // 60)
+        seconds = int(total_seconds % 60)
+        total_time = f"{hours}小时{minutes}分钟{seconds}秒"
+
+        # 添加时间信息
+        time_info = pd.DataFrame({
+            '开始时间': [start_time],
+            '结束时间': [end_time],
+            '总时间': [total_time]
+        })
+        
+        record_table = pd.concat([record_table, time_info], ignore_index=True)
+
+        # 记录路径
         record_table.to_csv(record_path, index=False)
+            
+        
 
     def _prepare_device(self, n_gpu_use):
         n_gpu = torch.cuda.device_count()

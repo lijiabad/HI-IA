@@ -93,8 +93,6 @@ def main():
     # parse arguments
     args = parse_agrs()
     
-    start_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-
     # fix random seeds
     torch.manual_seed(args.seed)
     torch.backends.cudnn.deterministic = True
@@ -129,28 +127,7 @@ def main():
     trainer = Trainer(model, criterion, metrics, optimizer, args, lr_scheduler, train_dataloader, val_dataloader, test_dataloader)
     trainer.train()
     
-    #record and write time
-    end_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-    total_seconds = time.mktime(time.strptime(end_time, "%Y-%m-%d %H:%M:%S")) - time.mktime(
-        time.strptime(start_time, "%Y-%m-%d %H:%M:%S")
-    )
-    hours = int(total_seconds // 3600)
-    minutes = int((total_seconds % 3600) // 60)
-    seconds = int(total_seconds % 60)
-    total_time = f"{hours}小时{minutes}分钟{seconds}秒"
-
-    # 添加时间信息
-    time_info = pd.DataFrame({
-        '开始时间': [start_time],
-        '结束时间': [end_time],
-        '总时间': [total_time]
-    })
-    record_table = pd.DataFrame()
-    record_table = pd.concat([record_table, time_info], axis=1)
-
-    # 记录路径
-    record_path = os.path.join(args.record_dir, args.dataset_name+'.csv')
-    record_table.to_csv(record_path, index=False)
+    
 
 
 if __name__ == '__main__':
